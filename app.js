@@ -117,13 +117,16 @@ if (process.env.NODE_ENV === 'production') {
     passwords.mongoTestPassword +
     '@cluster0-ipmon.mongodb.net/messages?retryWrites=true';
 }
+
+const port = process.env.PORT || 8080;
+
 mongoose
   .connect(
     MONGODB_URI
   )
   .then(result => {
-    const server = app.listen(8080);
-    console.log('Listening port 8080');
+    const server = app.listen(port);
+    console.log('Listening port ' + port);
   })
   .catch(err => console.log('CATCH: ', err));
 
