@@ -1,5 +1,12 @@
 const jsonwebtoken = require('jsonwebtoken');
-const passwords = require('../passwords/passwords');
+// const passwords = require('../passwords/passwords');
+
+let jsonwebtokenSecret;
+if (process.env.NODE_ENV === 'production') {
+  jsonwebtokenSecret = process.env.JSON_WEBTOKEN_SECRET;
+} else {
+  jsonwebtokenSecret = passwords.jsonwebtokenSecret;
+}
 
 module.exports = (req, res, next) => {
   const authHeader = req.get('Authorization');
@@ -10,7 +17,7 @@ module.exports = (req, res, next) => {
   const token = authHeader.split(' ')[1];
   let decodedToken;
   try {
-    decodedToken = jsonwebtoken.verify(token, passwords.jsonwebtokenSecret);
+    decodedToken = jsonwebtoken.verify(token, jsonwebtokenSecret);
   } catch (err) {
     req.isAuth = false;
     return next();
