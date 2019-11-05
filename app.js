@@ -17,7 +17,7 @@ const fileStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'images');
   },
-  filename: function(req, file, cb) {
+  filename: function (req, file, cb) {
     cb(null, uuidv4() + '--' + file.originalname);
   }
 });
@@ -35,7 +35,7 @@ const fileFilter = (req, file, cb) => {
 };
 
 app.use(bodyParser.json()); // application/json
-app.use(multer({storage: fileStorage, fileFilter: fileFilter}).single('image'));
+app.use(multer({ storage: fileStorage, fileFilter: fileFilter }).single('image'));
 app.use('/images', express.static(path.join(__dirname, 'images')));
 
 app.use((req, res, next) => {
@@ -73,11 +73,11 @@ app.put('/post-image', (req, res, next) => {
   }
   return res
     .status(201)
-    .json( {message: 'File stored.', filePath: req.file.path} );
+    .json({ message: 'File stored.', filePath: req.file.path });
 });
 
 app.use(
-   '/graphql',
+  '/graphql',
   graphqlHttp({
     schema: graphqlSchema,
     rootValue: graphqlResolver,
@@ -108,10 +108,15 @@ app.use((error, req, res, next) => {
   });
 });
 
-const MONGODB_URI = 'mongodb+srv://test:' +
-  passwords.mongoTestPassword +
-  '@cluster0-ipmon.mongodb.net/messages?retryWrites=true';
-
+console.log('process.env.NODE_ENV =', process.env.NODE_ENV);
+let MONGO_URI;
+if (process.env.NODE_ENV === 'production') {
+  MONGODB_URI = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@cluster0-ipmon.mongodb.net/messages?retryWrites=true`;
+} else {
+  MONGODB_URI = 'mongodb+srv://resttest:' +
+    passwords.mongoTestPassword +
+    '@cluster0-ipmon.mongodb.net/messages?retryWrites=true';
+}
 mongoose
   .connect(
     MONGODB_URI
@@ -122,10 +127,10 @@ mongoose
   })
   .catch(err => console.log('CATCH: ', err));
 
-  
+
 const deleteOldImage = filePath => {
   filePath = path.join(__dirname, filePath);
-  fs.unlink(filePath, err => { 
-    if(err) console.log('deleteOldImage: Error', err);
+  fs.unlink(filePath, err => {
+    if (err) console.log('deleteOldImage: Error', err);
   });
 }
