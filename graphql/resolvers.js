@@ -6,21 +6,28 @@ const Post = require('../models/post');
 const validator = require('validator');
 const jsonWebToken = require('jsonwebtoken');
 
-const passwords = require('../passwords/passwords');
+// const passwords = require('../passwords/passwords');
+
+let jsonwebtokenSecret;
+if (process.env.NODE_ENV === 'production') {
+  jsonwebtokenSecret = process.env.JSON_WEBTOKEN_SECRET;
+} else {
+  jsonwebtokenSecret = passwords.jsonwebtokenSecret;
+}
 
 module.exports = {
-  createUser: async function({ userInput }, req) {
+  createUser: async function ({ userInput }, req) {
     const errors = [];
     if (!validator.isEmail(userInput.email)) {
       errors.push({ message: 'E-Mail is invalid.', status: 1 });
     }
-    if(validator.isEmpty(userInput.password) || 
-        !validator.isLength(userInput.password, {min: 5})) {
-      errors.push({message: 'Password too short!', status: 2});
+    if (validator.isEmpty(userInput.password) ||
+      !validator.isLength(userInput.password, { min: 5 })) {
+      errors.push({ message: 'Password too short!', status: 2 });
     }
-    if(validator.isEmpty(userInput.name) || 
-        !validator.isLength(userInput.name, {min: 5})) {
-      errors.push({message: 'Name too short!', status: 3});
+    if (validator.isEmpty(userInput.name) ||
+      !validator.isLength(userInput.name, { min: 5 })) {
+      errors.push({ message: 'Name too short!', status: 3 });
     }
     if (errors.length > 0) {
       const error = new Error('Invalid input(s).');
@@ -28,9 +35,9 @@ module.exports = {
       error.code = 422;
       throw error;
     }
-    const existingUser = await User.findOne({email: userInput.email});
+    const existingUser = await User.findOne({ email: userInput.email });
     if (existingUser) {
-      const error = new Error ('User exists already!');
+      const error = new Error('User exists already!');
       throw error;
     }
 
@@ -40,9 +47,9 @@ module.exports = {
       name: userInput.name,
       password: hashedPw,
     })
-    
+
     const createdUser = await user.save();
-    return { ...createdUser._doc, _id: createdUser._id.toString()};
+    return { ...createdUser._doc, _id: createdUser._id.toString() };
   },
 
   user: async function (args, req) {
@@ -52,36 +59,36 @@ module.exports = {
       throw error;
     }
     const user = await User.findById(req.userId);
-    if(!user) {
-      const error = new Error ('User not found.');
+    if (!user) {
+      const error = new Error('User not found.');
       error.code = 404;
       throw error;
     }
     return { ...user._doc, _id: user._id.toString() };
   },
 
-  updateUserStatus: async function ({status}, req) {
+  updateUserStatus: async function ({ status }, req) {
     if (!req.isAuth) {
       const error = new Error('Not authenticated!');
       error.code = 401;
       throw error;
     }
     const user = await User.findById(req.userId);
-    if(!user) {
-      const error = new Error ('User not found.');
+    if (!user) {
+      const error = new Error('User not found.');
       error.code = 404;
       throw error;
     }
     user.status = status;
 
     await user.save();
-    return { ...user._doc, _id: user._id.toString()};
+    return { ...user._doc, _id: user._id.toString() };
   },
 
   login: async function ({ email, password }) {
-    const user = await User.findOne({email: email});
-    if(!user) {
-      const error = new Error ('User not found.');
+    const user = await User.findOne({ email: email });
+    if (!user) {
+      const error = new Error('User not found.');
       error.code = 404;
       throw error;
     }
@@ -94,14 +101,14 @@ module.exports = {
     const token = jsonWebToken.sign({
       userId: user._id.toString(),
       email: user.email
-    }, passwords.jsonwebtokenSecret, { expiresIn: '1h'});
+    }, jsonwebtokenSecret, { expiresIn: '1h' });
 
     return { token: token, userId: user._id.toString() };
   },
 
-  createPost: async function({ postInput }, req) {
+  createPost: async function ({ postInput }, req) {
     console.log('createPost');
-    
+
     if (!req.isAuth) {
       const error = new Error('Not authenticated!');
       error.code = 401;
@@ -110,15 +117,15 @@ module.exports = {
     const errors = [];
     if (
       validator.isEmpty(postInput.title) ||
-      !validator.isLength(postInput.title, {min: 5})
+      !validator.isLength(postInput.title, { min: 5 })
     ) {
-      errors.push({message: 'Title is invalid.'})
+      errors.push({ message: 'Title is invalid.' })
     }
     if (
       validator.isEmpty(postInput.content) ||
-      !validator.isLength(postInput.content, {min: 5})
+      !validator.isLength(postInput.content, { min: 5 })
     ) {
-      errors.push({message: 'Title is invalid.'})
+      errors.push({ message: 'Title is invalid.' })
     }
     if (errors.length > 0) {
       const error = new Error('Invalid input(s).');
@@ -127,7 +134,7 @@ module.exports = {
       throw error;
     }
     const user = await User.findById(req.userId);
-    if(!user) {
+    if (!user) {
       const error = new Error('User not found from database!');
       error.code = 401;
       throw error;
@@ -150,7 +157,7 @@ module.exports = {
     }
   },
 
-  deletePost: async function ({postId}, req) {
+  deletePost: async function ({ postId }, req) {
     console.log('deletePost:', postId);
     if (!req.isAuth) {
       const error = new Error('Not authenticated!');
@@ -159,12 +166,12 @@ module.exports = {
     }
 
     const post = await Post.findById(postId).populate('creator');
-    if(!post) {
+    if (!post) {
       const error = new Error('Post not found from database!');
       error.code = 404;
       throw error;
     }
-    
+
     if (req.userId !== post.creator._id.toString()) {
       const error = new Error('User is not authorized to edit the post!');
       error.code = 403;
@@ -178,9 +185,9 @@ module.exports = {
     return true;
   },
 
-  updatePost: async function({ postInput, postId }, req) {
+  updatePost: async function ({ postInput, postId }, req) {
     console.log('UpdatePost:', postId);
-    
+
     if (!req.isAuth) {
       const error = new Error('Not authenticated!');
       error.code = 401;
@@ -189,15 +196,15 @@ module.exports = {
     const errors = [];
     if (
       validator.isEmpty(postInput.title) ||
-      !validator.isLength(postInput.title, {min: 5})
+      !validator.isLength(postInput.title, { min: 5 })
     ) {
-      errors.push({message: 'Title is invalid.'})
+      errors.push({ message: 'Title is invalid.' })
     }
     if (
       validator.isEmpty(postInput.content) ||
-      !validator.isLength(postInput.content, {min: 5})
+      !validator.isLength(postInput.content, { min: 5 })
     ) {
-      errors.push({message: 'Title is invalid.'})
+      errors.push({ message: 'Title is invalid.' })
     }
     if (errors.length > 0) {
       const error = new Error('Invalid input(s).');
@@ -207,12 +214,12 @@ module.exports = {
     }
 
     const oldPost = await Post.findById(postId).populate('creator');
-    if(!oldPost) {
+    if (!oldPost) {
       const error = new Error('Post not found from database!');
       error.code = 401;
       throw error;
     }
-    
+
     if (req.userId !== oldPost.creator._id.toString()) {
       const error = new Error('User is not authorized to edit the post!');
       error.code = 401;
@@ -221,7 +228,7 @@ module.exports = {
 
     oldPost.title = postInput.title;
     oldPost.content = postInput.content;
-    if (postInput.imageUrl !== 'undefined' ) {
+    if (postInput.imageUrl !== 'undefined') {
 
       oldPost.imageUrl = postInput.imageUrl;
     }
@@ -229,7 +236,7 @@ module.exports = {
 
     const updatedPost = await oldPost.save();
     console.log('updatedPost=', updatedPost);
-    
+
     return {
       ...updatedPost._doc,
       _id: updatedPost._id.toString(),
@@ -239,9 +246,9 @@ module.exports = {
   },
 
 
-  posts: async function ({page}, req)  {
+  posts: async function ({ page }, req) {
     console.log('posts');
-    
+
     if (!req.isAuth) {
       const error = new Error('Not authenticated!');
       error.code = 401;
@@ -254,26 +261,26 @@ module.exports = {
     const totalPosts = await Post.find().countDocuments();
     const posts = await Post
       .find()
-      .skip((page -1) * perPage)
+      .skip((page - 1) * perPage)
       .limit(perPage)
-      .sort({createdAt: -1})
+      .sort({ createdAt: -1 })
       .populate('creator');
     return {
       posts: posts.map(p => {
         return {
           ...p._doc,
           _id: p._id.toString(),
-          createdAt: p.createdAt.toISOString(), 
-          updatedAt: p.updatedAt.toISOString(), 
+          createdAt: p.createdAt.toISOString(),
+          updatedAt: p.updatedAt.toISOString(),
         };
       }),
       totalPosts
     }
   },
 
-  post: async function ({postId}, req)  {
+  post: async function ({ postId }, req) {
     console.log('post: postId=', postId);
-    
+
     if (!req.isAuth) {
       const error = new Error('Not authenticated!');
       error.code = 401;
@@ -285,8 +292,8 @@ module.exports = {
     return {
       ...post._doc,
       _id: post._id.toString(),
-      createdAt: post.createdAt.toISOString(), 
-      updatedAt: post.updatedAt.toISOString(), 
+      createdAt: post.createdAt.toISOString(),
+      updatedAt: post.updatedAt.toISOString(),
     };
   }
 }
